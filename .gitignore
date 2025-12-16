@@ -1,0 +1,24 @@
+# Build outputs
+*.o
+*.cpp
+build/*.o
+build/*.cpp
+
+# Test applications
+guttersynth_test
+guttersynth_test.app/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temp files
+*.tmp
+*.bak
