@@ -20,3 +20,11 @@ Thumbs.db
 # Temp files
 *.tmp
 *.bak
+src/guttersynth_minimal.dsp
+src/guttersynth_minimal.o
+docs/BUILD_GUTTERSYNTH.md
+docs/IMPLEMENTATION.md
+docs/IMPLEMENTATION_SUMMARY.md
+docs/BUILD_GUTTERSYNTH.md
+docs/IMPLEMENTATION.md
+docs/IMPLEMENTATION_SUMMARY.md

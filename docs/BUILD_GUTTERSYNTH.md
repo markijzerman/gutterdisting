@@ -1,6 +1,6 @@
 # Building Guttersynth for Disting NT
 
-## Prerequisites
+## Prerequisites 
 
 1. **Faust compiler** - Install from https://faust.grame.fr/
 2. **ARM GCC toolchain** - `arm-none-eabi-gcc` and `arm-none-eabi-c++`

@@ -3,7 +3,7 @@
 Port of the Guttersynth forced damped Duffing oscillator system to the Expert Sleepers Disting NT module.
 
 **Original Guttersynth:** Tom Mudd
-**Disting NT Port:** M. IJzerman
+**Disting NT Port:** M. IJzerman 
 
 ## Original Implementation (Max/MSP - Java)
 
