@@ -3,6 +3,7 @@
 // Port by M. IJzerman
 //
 // 8 voices × 4 filters = 32 biquads (matching original voice count)
+// Use Disting's CV mapping for external modulation
 
 declare guid "Gut8";
 declare name "Gutter 8-Voice";
@@ -18,7 +19,7 @@ gamma = hslider("h:[0]Duffing/[0]gamma", 0.1, 0, 5, 0.001) : si.smoo;
 omega = hslider("h:[0]Duffing/[1]omega", 1.25, 0.1, 10, 0.01) : si.smoo;
 c = hslider("h:[0]Duffing/[2]c (damping)", 0.3, 0, 1, 0.001) : si.smoo;
 dt = hslider("h:[0]Duffing/[3]dt", 1, 0.001, 10, 0.001) : si.smoo;
-cMod = hslider("h:[0]Duffing/[4]c modulation", 0.0, 0, 1, 0.01) : si.smoo;
+cModAmount = hslider("h:[0]Duffing/[4]c modulation", 0.0, 0, 1, 0.01) : si.smoo;
 
 filterQ = hslider("h:[1]Filters/[0]Q", 30, 0.5, 100, 0.1) : si.smoo;
 smoothing = hslider("h:[1]Filters/[1]smoothing", 1, 1, 10, 0.1);
@@ -104,11 +105,11 @@ voicePan(2) = 0.15;  voicePan(3) = 0.85;
 voicePan(4) = 0.3;   voicePan(5) = 0.7;
 voicePan(6) = 0.45;  voicePan(7) = 0.55;
 
-filterBank(n) = _ <: (
-    biquadBP(getFilterFreq(n, 0), filterQ),
-    biquadBP(getFilterFreq(n, 1), filterQ),
-    biquadBP(getFilterFreq(n, 2), filterQ),
-    biquadBP(getFilterFreq(n, 3), filterQ)
+filterBank(n, Q) = _ <: (
+    biquadBP(getFilterFreq(n, 0), Q),
+    biquadBP(getFilterFreq(n, 1), Q),
+    biquadBP(getFilterFreq(n, 2), Q),
+    biquadBP(getFilterFreq(n, 3), Q)
 ) :> _;
 
 omegaMult(0) = 1.0;    omegaMult(1) = 1.007;
@@ -132,15 +133,15 @@ eightVoiceSystem(audioIn,
     mixOut
 with {
     xSum = x1+x2+x3+x4+x5+x6+x7+x8;
-    cMod2 = c + (mixFB * cMod);
+    cMod = c + (mixFB * cModAmount);
     extAudio = audioIn * extAudioGain;
 
     // Voice 1
     t1n = t1 + dt;
-    fY1 = (x1 : filterBank(0)) * singleGain;
+    fY1 = (x1 : filterBank(0, filterQ)) * singleGain;
     coup1 = (xSum - x1) * coupling / 7;
     forc1 = gamma * (sin(omega * omegaMult(0) * t1n) * (1-extAudioMix) + extAudio * extAudioMix) + coup1;
-    dy1 = fY1 - (fY1*fY1*fY1) - (cMod2 * y1) + forc1;
+    dy1 = fY1 - (fY1*fY1*fY1) - (cMod * y1) + forc1;
     y1n = clamp100(y1 + dy1);
     x1n = distortion(distMode, x1 + (fY1 + y1n - x1) / smoothing);
     oL1 = fY1 * (1 - voicePan(0));
@@ -148,10 +149,10 @@ with {
 
     // Voice 2
     t2n = t2 + dt;
-    fY2 = (x2 : filterBank(1)) * singleGain;
+    fY2 = (x2 : filterBank(1, filterQ)) * singleGain;
     coup2 = (xSum - x2) * coupling / 7;
     forc2 = gamma * (sin(omega * omegaMult(1) * t2n) * (1-extAudioMix) + extAudio * extAudioMix) + coup2;
-    dy2 = fY2 - (fY2*fY2*fY2) - (cMod2 * y2) + forc2;
+    dy2 = fY2 - (fY2*fY2*fY2) - (cMod * y2) + forc2;
     y2n = clamp100(y2 + dy2);
     x2n = distortion(distMode, x2 + (fY2 + y2n - x2) / smoothing);
     oL2 = fY2 * (1 - voicePan(1));
@@ -159,10 +160,10 @@ with {
 
     // Voice 3
     t3n = t3 + dt;
-    fY3 = (x3 : filterBank(2)) * singleGain;
+    fY3 = (x3 : filterBank(2, filterQ)) * singleGain;
     coup3 = (xSum - x3) * coupling / 7;
     forc3 = gamma * (sin(omega * omegaMult(2) * t3n) * (1-extAudioMix) + extAudio * extAudioMix) + coup3;
-    dy3 = fY3 - (fY3*fY3*fY3) - (cMod2 * y3) + forc3;
+    dy3 = fY3 - (fY3*fY3*fY3) - (cMod * y3) + forc3;
     y3n = clamp100(y3 + dy3);
     x3n = distortion(distMode, x3 + (fY3 + y3n - x3) / smoothing);
     oL3 = fY3 * (1 - voicePan(2));
@@ -170,10 +171,10 @@ with {
 
     // Voice 4
     t4n = t4 + dt;
-    fY4 = (x4 : filterBank(3)) * singleGain;
+    fY4 = (x4 : filterBank(3, filterQ)) * singleGain;
     coup4 = (xSum - x4) * coupling / 7;
     forc4 = gamma * (sin(omega * omegaMult(3) * t4n) * (1-extAudioMix) + extAudio * extAudioMix) + coup4;
-    dy4 = fY4 - (fY4*fY4*fY4) - (cMod2 * y4) + forc4;
+    dy4 = fY4 - (fY4*fY4*fY4) - (cMod * y4) + forc4;
     y4n = clamp100(y4 + dy4);
     x4n = distortion(distMode, x4 + (fY4 + y4n - x4) / smoothing);
     oL4 = fY4 * (1 - voicePan(3));
@@ -181,10 +182,10 @@ with {
 
     // Voice 5
     t5n = t5 + dt;
-    fY5 = (x5 : filterBank(4)) * singleGain;
+    fY5 = (x5 : filterBank(4, filterQ)) * singleGain;
     coup5 = (xSum - x5) * coupling / 7;
     forc5 = gamma * (sin(omega * omegaMult(4) * t5n) * (1-extAudioMix) + extAudio * extAudioMix) + coup5;
-    dy5 = fY5 - (fY5*fY5*fY5) - (cMod2 * y5) + forc5;
+    dy5 = fY5 - (fY5*fY5*fY5) - (cMod * y5) + forc5;
     y5n = clamp100(y5 + dy5);
     x5n = distortion(distMode, x5 + (fY5 + y5n - x5) / smoothing);
     oL5 = fY5 * (1 - voicePan(4));
@@ -192,10 +193,10 @@ with {
 
     // Voice 6
     t6n = t6 + dt;
-    fY6 = (x6 : filterBank(5)) * singleGain;
+    fY6 = (x6 : filterBank(5, filterQ)) * singleGain;
     coup6 = (xSum - x6) * coupling / 7;
     forc6 = gamma * (sin(omega * omegaMult(5) * t6n) * (1-extAudioMix) + extAudio * extAudioMix) + coup6;
-    dy6 = fY6 - (fY6*fY6*fY6) - (cMod2 * y6) + forc6;
+    dy6 = fY6 - (fY6*fY6*fY6) - (cMod * y6) + forc6;
     y6n = clamp100(y6 + dy6);
     x6n = distortion(distMode, x6 + (fY6 + y6n - x6) / smoothing);
     oL6 = fY6 * (1 - voicePan(5));
@@ -203,10 +204,10 @@ with {
 
     // Voice 7
     t7n = t7 + dt;
-    fY7 = (x7 : filterBank(6)) * singleGain;
+    fY7 = (x7 : filterBank(6, filterQ)) * singleGain;
     coup7 = (xSum - x7) * coupling / 7;
     forc7 = gamma * (sin(omega * omegaMult(6) * t7n) * (1-extAudioMix) + extAudio * extAudioMix) + coup7;
-    dy7 = fY7 - (fY7*fY7*fY7) - (cMod2 * y7) + forc7;
+    dy7 = fY7 - (fY7*fY7*fY7) - (cMod * y7) + forc7;
     y7n = clamp100(y7 + dy7);
     x7n = distortion(distMode, x7 + (fY7 + y7n - x7) / smoothing);
     oL7 = fY7 * (1 - voicePan(6));
@@ -214,10 +215,10 @@ with {
 
     // Voice 8
     t8n = t8 + dt;
-    fY8 = (x8 : filterBank(7)) * singleGain;
+    fY8 = (x8 : filterBank(7, filterQ)) * singleGain;
     coup8 = (xSum - x8) * coupling / 7;
     forc8 = gamma * (sin(omega * omegaMult(7) * t8n) * (1-extAudioMix) + extAudio * extAudioMix) + coup8;
-    dy8 = fY8 - (fY8*fY8*fY8) - (cMod2 * y8) + forc8;
+    dy8 = fY8 - (fY8*fY8*fY8) - (cMod * y8) + forc8;
     y8n = clamp100(y8 + dy8);
     x8n = distortion(distMode, x8 + (fY8 + y8n - x8) / smoothing);
     oL8 = fY8 * (1 - voicePan(7));
@@ -243,7 +244,9 @@ sumStereo8(l1,r1,l2,r2,l3,r3,l4,r4,l5,r5,l6,r6,l7,r7,l8,r8) =
     ((l1+l2+l3+l4+l5+l6+l7+l8) * 0.125 : dcblock : *(outputGain)),
     ((r1+r2+r3+r4+r5+r6+r7+r8) * 0.125 : dcblock : *(outputGain));
 
-processWithInput(inL, inR) = (eightVoiceSystem(audioMono) ~ eightVoiceFeedback) :
+// Stereo in, stereo out
+processWithInput(inL, inR) =
+    (eightVoiceSystem(audioMono) ~ eightVoiceFeedback) :
     (_, _, !, !, !,  _, _, !, !, !,  _, _, !, !, !,  _, _, !, !, !,
      _, _, !, !, !,  _, _, !, !, !,  _, _, !, !, !,  _, _, !, !, !, !) :
     sumStereo8
