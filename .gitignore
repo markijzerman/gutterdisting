@@ -1,7 +1,5 @@
 # Build outputs
-*.o
 *.cpp
-build/*.o
 build/*.cpp
 
 # Test applications
