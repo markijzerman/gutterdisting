@@ -35,7 +35,7 @@ voice7Root = hslider("h:[1]Filters/[9]v7 root", 36, -24, 48, 1);
 voice8Root = hslider("h:[1]Filters/[10]v8 root", 43, -24, 48, 1);
 
 singleGain = hslider("h:[2]Mix/[0]gain", 1.0, 0, 5, 0.01) : si.smoo;
-coupling = hslider("h:[2]Mix/[1]coupling", 0.2, 0, 1, 0.01) : si.smoo;
+oscInteraction = hslider("h:[2]Mix/[1]osc interaction", 0.2, 0, 5, 0.01) : si.smoo;
 distMode = nentry("h:[2]Mix/[2]distortion", 2, 0, 4, 1);
 outputGain = hslider("h:[2]Mix/[3]output gain", 1.0, 0.1, 10, 0.1) : si.smoo;
 extAudioMix = hslider("h:[2]Mix/[4]ext audio mix", 0.0, 0, 1, 0.01) : si.smoo;
@@ -132,15 +132,26 @@ eightVoiceSystem(audioIn,
     oL7,oR7, x7n,y7n,t7n, oL8,oR8, x8n,y8n,t8n,
     mixOut
 with {
-    xSum = x1+x2+x3+x4+x5+x6+x7+x8;
     cMod = c + (mixFB * cModAmount);
     extAudio = audioIn * extAudioGain;
 
+    // Compute all filter outputs first (for oscillator interaction)
+    fY1 = (x1 : filterBank(0, filterQ)) * singleGain;
+    fY2 = (x2 : filterBank(1, filterQ)) * singleGain;
+    fY3 = (x3 : filterBank(2, filterQ)) * singleGain;
+    fY4 = (x4 : filterBank(3, filterQ)) * singleGain;
+    fY5 = (x5 : filterBank(4, filterQ)) * singleGain;
+    fY6 = (x6 : filterBank(5, filterQ)) * singleGain;
+    fY7 = (x7 : filterBank(6, filterQ)) * singleGain;
+    fY8 = (x8 : filterBank(7, filterQ)) * singleGain;
+
+    // Sum of all audio outputs for oscillator interaction (like Max matrix)
+    fYSum = fY1+fY2+fY3+fY4+fY5+fY6+fY7+fY8;
+
     // Voice 1
     t1n = t1 + dt;
-    fY1 = (x1 : filterBank(0, filterQ)) * singleGain;
-    coup1 = (xSum - x1) * coupling / 7;
-    forc1 = gamma * (sin(omega * omegaMult(0) * t1n) * (1-extAudioMix) + extAudio * extAudioMix) + coup1;
+    oscInt1 = (fYSum - fY1) * oscInteraction / 7;
+    forc1 = gamma * (sin(omega * omegaMult(0) * t1n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt1);
     dy1 = fY1 - (fY1*fY1*fY1) - (cMod * y1) + forc1;
     y1n = clamp100(y1 + dy1);
     x1n = distortion(distMode, x1 + (fY1 + y1n - x1) / smoothing);
@@ -149,9 +160,8 @@ with {
 
     // Voice 2
     t2n = t2 + dt;
-    fY2 = (x2 : filterBank(1, filterQ)) * singleGain;
-    coup2 = (xSum - x2) * coupling / 7;
-    forc2 = gamma * (sin(omega * omegaMult(1) * t2n) * (1-extAudioMix) + extAudio * extAudioMix) + coup2;
+    oscInt2 = (fYSum - fY2) * oscInteraction / 7;
+    forc2 = gamma * (sin(omega * omegaMult(1) * t2n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt2);
     dy2 = fY2 - (fY2*fY2*fY2) - (cMod * y2) + forc2;
     y2n = clamp100(y2 + dy2);
     x2n = distortion(distMode, x2 + (fY2 + y2n - x2) / smoothing);
@@ -160,9 +170,8 @@ with {
 
     // Voice 3
     t3n = t3 + dt;
-    fY3 = (x3 : filterBank(2, filterQ)) * singleGain;
-    coup3 = (xSum - x3) * coupling / 7;
-    forc3 = gamma * (sin(omega * omegaMult(2) * t3n) * (1-extAudioMix) + extAudio * extAudioMix) + coup3;
+    oscInt3 = (fYSum - fY3) * oscInteraction / 7;
+    forc3 = gamma * (sin(omega * omegaMult(2) * t3n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt3);
     dy3 = fY3 - (fY3*fY3*fY3) - (cMod * y3) + forc3;
     y3n = clamp100(y3 + dy3);
     x3n = distortion(distMode, x3 + (fY3 + y3n - x3) / smoothing);
@@ -171,9 +180,8 @@ with {
 
     // Voice 4
     t4n = t4 + dt;
-    fY4 = (x4 : filterBank(3, filterQ)) * singleGain;
-    coup4 = (xSum - x4) * coupling / 7;
-    forc4 = gamma * (sin(omega * omegaMult(3) * t4n) * (1-extAudioMix) + extAudio * extAudioMix) + coup4;
+    oscInt4 = (fYSum - fY4) * oscInteraction / 7;
+    forc4 = gamma * (sin(omega * omegaMult(3) * t4n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt4);
     dy4 = fY4 - (fY4*fY4*fY4) - (cMod * y4) + forc4;
     y4n = clamp100(y4 + dy4);
     x4n = distortion(distMode, x4 + (fY4 + y4n - x4) / smoothing);
@@ -182,9 +190,8 @@ with {
 
     // Voice 5
     t5n = t5 + dt;
-    fY5 = (x5 : filterBank(4, filterQ)) * singleGain;
-    coup5 = (xSum - x5) * coupling / 7;
-    forc5 = gamma * (sin(omega * omegaMult(4) * t5n) * (1-extAudioMix) + extAudio * extAudioMix) + coup5;
+    oscInt5 = (fYSum - fY5) * oscInteraction / 7;
+    forc5 = gamma * (sin(omega * omegaMult(4) * t5n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt5);
     dy5 = fY5 - (fY5*fY5*fY5) - (cMod * y5) + forc5;
     y5n = clamp100(y5 + dy5);
     x5n = distortion(distMode, x5 + (fY5 + y5n - x5) / smoothing);
@@ -193,9 +200,8 @@ with {
 
     // Voice 6
     t6n = t6 + dt;
-    fY6 = (x6 : filterBank(5, filterQ)) * singleGain;
-    coup6 = (xSum - x6) * coupling / 7;
-    forc6 = gamma * (sin(omega * omegaMult(5) * t6n) * (1-extAudioMix) + extAudio * extAudioMix) + coup6;
+    oscInt6 = (fYSum - fY6) * oscInteraction / 7;
+    forc6 = gamma * (sin(omega * omegaMult(5) * t6n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt6);
     dy6 = fY6 - (fY6*fY6*fY6) - (cMod * y6) + forc6;
     y6n = clamp100(y6 + dy6);
     x6n = distortion(distMode, x6 + (fY6 + y6n - x6) / smoothing);
@@ -204,9 +210,8 @@ with {
 
     // Voice 7
     t7n = t7 + dt;
-    fY7 = (x7 : filterBank(6, filterQ)) * singleGain;
-    coup7 = (xSum - x7) * coupling / 7;
-    forc7 = gamma * (sin(omega * omegaMult(6) * t7n) * (1-extAudioMix) + extAudio * extAudioMix) + coup7;
+    oscInt7 = (fYSum - fY7) * oscInteraction / 7;
+    forc7 = gamma * (sin(omega * omegaMult(6) * t7n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt7);
     dy7 = fY7 - (fY7*fY7*fY7) - (cMod * y7) + forc7;
     y7n = clamp100(y7 + dy7);
     x7n = distortion(distMode, x7 + (fY7 + y7n - x7) / smoothing);
@@ -215,16 +220,15 @@ with {
 
     // Voice 8
     t8n = t8 + dt;
-    fY8 = (x8 : filterBank(7, filterQ)) * singleGain;
-    coup8 = (xSum - x8) * coupling / 7;
-    forc8 = gamma * (sin(omega * omegaMult(7) * t8n) * (1-extAudioMix) + extAudio * extAudioMix) + coup8;
+    oscInt8 = (fYSum - fY8) * oscInteraction / 7;
+    forc8 = gamma * (sin(omega * omegaMult(7) * t8n) * (1-extAudioMix) + extAudio * extAudioMix + oscInt8);
     dy8 = fY8 - (fY8*fY8*fY8) - (cMod * y8) + forc8;
     y8n = clamp100(y8 + dy8);
     x8n = distortion(distMode, x8 + (fY8 + y8n - x8) / smoothing);
     oL8 = fY8 * (1 - voicePan(7));
     oR8 = fY8 * voicePan(7);
 
-    mixOut = (oL1+oL2+oL3+oL4+oL5+oL6+oL7+oL8) * 0.125;
+    mixOut = fYSum * 0.125;
 };
 
 eightVoiceFeedback(

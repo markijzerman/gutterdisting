@@ -44,7 +44,7 @@ voice4Vol = hslider("h:[1]Filters/[10]voice 4 vol", 1.0, 0, 2, 0.01) : si.smoo;
 
 // Mix
 singleGain = hslider("h:[2]Mix/[0]gain", 1.0, 0, 5, 0.01) : si.smoo;
-coupling = hslider("h:[2]Mix/[1]coupling", 0.2, 0, 1, 0.01) : si.smoo;
+oscInteraction = hslider("h:[2]Mix/[1]osc interaction", 0.2, 0, 5, 0.01) : si.smoo;
 distMode = nentry("h:[2]Mix/[2]distortion", 2, 0, 4, 1);
 outputGain = hslider("h:[2]Mix/[3]output gain", 1.0, 0.1, 10, 0.1) : si.smoo;
 
@@ -186,22 +186,27 @@ fourVoiceSystem(audioIn,
     outL3, outR3, x3n, y3n, t3n,  outL4, outR4, x4n, y4n, t4n,
     mixOut
 with {
-    // Sum of all duffX for coupling
-    xSum = x1 + x2 + x3 + x4;
-
     // c (damping) modulated by mix feedback
     cModulated = c + (mixFeedback * cMod);
 
     // External audio scaled
     extAudio = audioIn * extAudioGain;
 
+    // Compute all filter outputs first (for oscillator interaction)
+    fY1 = (x1 : filterBank(0)) * singleGain;
+    fY2 = (x2 : filterBank(1)) * singleGain;
+    fY3 = (x3 : filterBank(2)) * singleGain;
+    fY4 = (x4 : filterBank(3)) * singleGain;
+
+    // Sum of all audio outputs for oscillator interaction (like Max matrix)
+    fYSum = fY1 + fY2 + fY3 + fY4;
+
     // Voice 1 (full left)
     t1n = t1 + dt;
-    fY1 = (x1 : filterBank(0)) * singleGain;
-    coup1 = (xSum - x1) * coupling / 3;
+    oscInt1 = (fYSum - fY1) * oscInteraction / 3;
     internalOsc1 = sin(omega * omegaMult(0) * t1n);
     forcingOsc1 = internalOsc1 * (1 - extAudioMix) + extAudio * extAudioMix;
-    forcing1 = gamma * forcingOsc1 + coup1;
+    forcing1 = gamma * (forcingOsc1 + oscInt1);
     dy1 = fY1 - (fY1*fY1*fY1) - (cModulated * y1) + forcing1;
     y1n = clamp100(y1 + dy1);
     x1lp = x1 + (fY1 + y1n - x1) / smoothing;
@@ -211,11 +216,10 @@ with {
 
     // Voice 2 (full right)
     t2n = t2 + dt;
-    fY2 = (x2 : filterBank(1)) * singleGain;
-    coup2 = (xSum - x2) * coupling / 3;
+    oscInt2 = (fYSum - fY2) * oscInteraction / 3;
     internalOsc2 = sin(omega * omegaMult(1) * t2n);
     forcingOsc2 = internalOsc2 * (1 - extAudioMix) + extAudio * extAudioMix;
-    forcing2 = gamma * forcingOsc2 + coup2;
+    forcing2 = gamma * (forcingOsc2 + oscInt2);
     dy2 = fY2 - (fY2*fY2*fY2) - (cModulated * y2) + forcing2;
     y2n = clamp100(y2 + dy2);
     x2lp = x2 + (fY2 + y2n - x2) / smoothing;
@@ -225,11 +229,10 @@ with {
 
     // Voice 3 (left-ish)
     t3n = t3 + dt;
-    fY3 = (x3 : filterBank(2)) * singleGain;
-    coup3 = (xSum - x3) * coupling / 3;
+    oscInt3 = (fYSum - fY3) * oscInteraction / 3;
     internalOsc3 = sin(omega * omegaMult(2) * t3n);
     forcingOsc3 = internalOsc3 * (1 - extAudioMix) + extAudio * extAudioMix;
-    forcing3 = gamma * forcingOsc3 + coup3;
+    forcing3 = gamma * (forcingOsc3 + oscInt3);
     dy3 = fY3 - (fY3*fY3*fY3) - (cModulated * y3) + forcing3;
     y3n = clamp100(y3 + dy3);
     x3lp = x3 + (fY3 + y3n - x3) / smoothing;
@@ -239,11 +242,10 @@ with {
 
     // Voice 4 (right-ish)
     t4n = t4 + dt;
-    fY4 = (x4 : filterBank(3)) * singleGain;
-    coup4 = (xSum - x4) * coupling / 3;
+    oscInt4 = (fYSum - fY4) * oscInteraction / 3;
     internalOsc4 = sin(omega * omegaMult(3) * t4n);
     forcingOsc4 = internalOsc4 * (1 - extAudioMix) + extAudio * extAudioMix;
-    forcing4 = gamma * forcingOsc4 + coup4;
+    forcing4 = gamma * (forcingOsc4 + oscInt4);
     dy4 = fY4 - (fY4*fY4*fY4) - (cModulated * y4) + forcing4;
     y4n = clamp100(y4 + dy4);
     x4lp = x4 + (fY4 + y4n - x4) / smoothing;
@@ -252,7 +254,7 @@ with {
     outR4 = fY4 * voicePan(3) * voice4Vol;
 
     // Mix output for c modulation feedback
-    mixOut = (fY1 + fY2 + fY3 + fY4) * 0.25;
+    mixOut = fYSum * 0.25;
 };
 
 // Feedback: extract state vars + mix for c modulation
